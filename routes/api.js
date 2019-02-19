@@ -8,27 +8,79 @@
 
 'use strict';
 
+require('dotenv').config()
 var expect = require('chai').expect;
 var MongoClient = require('mongodb').MongoClient;
 var ObjectId = require('mongodb').ObjectId;
-const MONGODB_CONNECTION_STRING = process.env.DB;
-//Example connection: MongoClient.connect(MONGODB_CONNECTION_STRING, function(err, db) {});
+const mongoose = require ('mongoose');
+const Book = require("../models/book.model");
+mongoose.Promise = global.Promise;
 
 module.exports = function (app) {
 
+  mongoose.connect(process.env.DATABASE_URL, { 
+    useNewUrlParser: true 
+  }).then( () => {
+    console.log("Successfully connected to database");
+  }).catch(err => {
+    console.log("Failed to connect to database. Exiting now. Error: ", err);
+    process.exit();
+  });
+
   app.route('/api/books')
     .get(function (req, res){
-      //response will be array of book objects
-      //json res format: [{"_id": bookid, "title": book_title, "commentcount": num_of_comments },...]
+      Book.find({})
+       .then( books => {
+         const bookResults = [];
+         //Add each book to results array and calculate comment length
+         books.forEach(book => {
+           bookResults.push({
+            "_id": book.id,
+            "title": book.title,
+            "commentcount": book.comments.length
+           });
+         });
+
+         res.send(bookResults);
+       }).catch( err => {
+         res.status(500).send({
+           message: err.message || "Error occured in retrieving issues"
+        });
+       });
     })
     
     .post(function (req, res){
       var title = req.body.title;
-      //response will contain new book object including atleast _id and title
+
+      //Handle when user forgets to add a book title
+      if(!title) {
+        return res.status(500).send({message: "No title entered"});
+      }
+      
+      const newBook = new Book({
+        "title": title
+      })
+
+      newBook.save().then(
+        book => {
+          res.send({"title": book.title, "_id": book._id});
+        }).catch(err => {
+          res.status(500).send({
+            message: err.message || "Error occured creating new book"
+          });
+        });
     })
     
     .delete(function(req, res){
-      //if successful response will be 'complete delete successful'
+      Book.deleteMany({})
+      .then( books => {
+        res.send( {message: "Deleted all books in library"} );
+      })
+      .catch(err => {
+        res.status(500).send({
+          message: err.message || "Error occured creating new book"
+        });
+      });
     });
 
 
@@ -36,18 +88,75 @@ module.exports = function (app) {
   app.route('/api/books/:id')
     .get(function (req, res){
       var bookid = req.params.id;
+      Book.findById(bookid, "_id title comments")
+       .then( book => {
+         //Handle incorrect ID
+         if(!book) {
+          return res.status(500).send("Book ID not found.");
+        }
+        //send success response if found
+        return res.send( {
+          "_id": book._id,
+          "title": book.title,
+          "comments": book.comments
+        });
+      })
+       .catch( err => {
+        if(err.kind === "ObjectId") {
+          return res.status(500).send("Book ID not found.");
+        }
+        res.send({
+          message: err.message || "Error deleting book"
+       });
+      });
       //json res format: {"_id": bookid, "title": book_title, "comments": [comment,comment,...]}
     })
     
     .post(function(req, res){
       var bookid = req.params.id;
       var comment = req.body.comment;
-      //json res format same as .get
+      
+      Book.findByIdAndUpdate(bookid, {
+        $push: { comments: comment }},
+      {new: true})
+       .then(book => {
+        return res.send( {
+          "_id": book._id,
+          "title": book.title,
+          "comments": book.comments
+        });
+      })
+       .catch(err => {
+        if(err.kind === "ObjectId") {
+          return res.status(500).send("Book ID not found.");
+        }
+        res.send({
+          message: err.message || "Error deleting book"
+       });
+      });
     })
     
     .delete(function(req, res){
       var bookid = req.params.id;
-      //if successful response will be 'delete successful'
+
+      Book.findByIdAndDelete(bookid)
+       .then( book => {
+         //Handle incorrect ID
+         if(!book) {
+           return res.status(500).send("Book ID not found.");
+         }
+         //send success response if found
+         return res.send("Successfully deleted book with id: " + bookid);
+       })
+       .catch( err => {
+         if(err.kind === "ObjectId") {
+           return res.status(500).send("Book ID not found.");
+         }
+         console.log(err.message);
+         res.send({
+           message: err.message || "Error deleting book"
+        });
+       });
     });
   
 };

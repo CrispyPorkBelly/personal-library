@@ -1,20 +1,23 @@
 {
-	"name": "fcc-library",
-	"version": "0.0.1",
-	"description": "boilerplate",
+	"name": "peters-library",
+	"version": "1.0.0",
+	"description": "third project in FreeCodeCamp Advanced Express and API certificate",
 	"main": "server.js",
 	"scripts": {
-		"start": "node server.js"
+		"start": "node server.js",
+		"test": "mocha -u tdd tests/**.js --recursive --exit"
 	},
 	"dependencies": {
 		"body-parser": "^1.15.2",
 		"chai": "^3.5.0",
 		"chai-http": "^4.2.1",
 		"cors": "^2.8.1",
+		"dotenv": "^6.2.0",
 		"express": "^4.14.0",
-		"helmet": "^3.1.0",
+		"helmet": "^3.15.1",
 		"mocha": "^5.2.0",
 		"mongodb": "^2.2.16",
+		"mongoose": "^5.4.13",
 		"zombie": "^6.1.4"
 	},
 	"engines": {
