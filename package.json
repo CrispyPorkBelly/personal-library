@@ -18,10 +18,11 @@
 		"mocha": "^5.2.0",
 		"mongodb": "^2.2.16",
 		"mongoose": "^5.4.13",
+		"node": "^11.10.0",
 		"zombie": "^6.1.4"
 	},
 	"engines": {
-		"node": "4.4.3"
+		"node": ">=4.4.3"
 	},
 	"repository": {
 		"type": "git",
